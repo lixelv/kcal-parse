@@ -1,20 +1,21 @@
-import sqlite3
+import mysql.connector
 
 class DB:
-    def __init__(self, db_name):
-        self.connect = sqlite3.connect(db_name)
+    def __init__(self, db_config):
+        self.connect = mysql.connector.connect(**db_config)
         self.cursor = self.connect.cursor()
 
     def do(self, sql, values=()) -> None:
-        self.cursor.execute(sql, values)
+        self.cursor.execute(sql.replace('?', '%s'), values)
         self.connect.commit()
 
     def read(self, sql, values=()) -> tuple:
-        self.cursor.execute(sql, values)
+        self.cursor.execute(sql.replace('?', '%s'), values)
         return self.cursor.fetchall()
 
-    def add_second_name(self, values: list | tuple | set) -> None:
-        self.do('INSERT INTO second_name (name, url, first_name_id) VALUES (?, ?, ?)', tuple(values))
+    def find_data(self, resp) -> tuple:
+        return self.read("SELECT id, name FROM product WHERE LOWER(name) LIKE '%' || %s || '%'", (resp.lower(),))
 
-    def add_data(self, values: list | tuple | set) -> None:
-        self.do(f'INSERT INTO data (product, kcal, protein, fat, carbonates, url, second_name_id) VALUES (?, ?, ?, ?, ?, ?, ?)', tuple(values))
+    def __del__(self):
+        self.cursor.close()
+        self.connect.close()
